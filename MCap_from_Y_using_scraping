@@ -1,0 +1,44 @@
+require(XML)
+require(plyr)
+getMcap_xpath <- function(symbol) {
+  
+  #  http://finance.yahoo.com/quote/BAJAJ-AUTO.NS/?p=BAJAJ-AUTO.NS
+  yahoo.URL <- "http://finance.yahoo.com/quote/"
+  html_text <- htmlParse(paste(yahoo.URL, symbol,"/?p=", symbol, sep = ""), encoding="UTF-8")
+  
+  # search for <td> nodes anywhere that have class 'yfnc_tablehead1'
+  # nodes <- getNodeSet(html_text, "/*//td[@class='yfnc_tablehead1']")
+  searchtag <- "<td class=\"Ta(end) Fw(b)\" data-test=\"MARKET_CAP-value\" data-reactid=\".vig9e312sk.1.$0.0.0.3.1.$main-0-Quote-Proxy.$main-0-Quote.2.0.0.0.1.1.0.0.$MARKET_CAP.1\">"
+  nodes <- readHTMLTable(html_text, searchtag)
+  #str(nodes, max.level = 1)
+    if(length(nodes) > 0 ) {
+    nodes = nodes[[3]]
+    mcap = as.vector(apply(nodes[1:1, ], 2, paste, collapse = '')[2])
+    return(mcap)
+    } else {
+    break
+    }
+}
+
+tickerlist <- read.csv("D:/Quantinsti/EPAT/Material/STRATEGIES/STRAT-3-Assignment/ind_nifty100list.csv")
+tickers <- c(paste('"', tickerlist$Symbol, '.NS"', sep="", collapse=","))
+symbols = ""
+for (symbols in tickers) {
+  tryCatch(
+  {
+      cat(paste("the symbol is", symbols, "\n"))
+      stats <- ldply(tickers, getMcap_xpath)
+      rownames(stats) <- tickers
+  },
+  error = function(cond) {
+    cat(paste(symbols, "errored out"))
+  },
+  warning = function(cond) {
+    cat(paste(symbols, "warning message"))
+  }
+)
+}
+rownames(stats) <- tickers
+write.csv(t(stats), "FinancialStats_updated.csv",row.names=TRUE)  
+
+#######################################################################
