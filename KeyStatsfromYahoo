@@ -1,0 +1,34 @@
+#######################################################################
+# Script to download key metrics for a set of stock tickers using the quantmod package
+# This works only for stocks in US market
+#######################################################################
+require(quantmod)
+require("plyr")
+what_metrics <- yahooQF("Market Capitalization")
+
+tickerlist <- c("AAPL","MSFT","IBM")
+# Not all the metrics are returned by Yahoo.
+metrics <- tryCatch(
+  {
+    getQuote(paste(tickerlist, sep="", collapse=";"), what=what_metrics)
+  },
+  error = function(cond) {
+    message(paste(tickerlist, " Symbol errored out\n"))
+    message(cond)
+  },
+  warning = function(cond) {
+    message(paste(tickerlist, " Symbol warning\n"))
+    message(cond)
+  }
+  )
+
+#Add tickers as the first column and remove the first column which had date stamps
+metrics <- data.frame(Symbol=tickerlist, metrics[,2:length(metrics)]) 
+
+#Change colnames
+colnames(metrics) <- c("Symbol", "Market Cap")
+
+#Persist this to the csv file
+write.csv(metrics, "FinancialMetrics.csv", row.names=FALSE)
+
+#######################################################################
